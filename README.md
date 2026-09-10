@@ -1,3 +1,41 @@
+# speculative_decoding
+
+    harness/    device planning + the accept/reject rule
+    training/   draft-model config and training loop
+    eval/       metrics (acceptance rate, speedup) and benchmark entry point
+    analysis/   JSONL aggregation and sweep tables
+    tests/      CPU-only, model-free, ~2s
+
+Local setup:
+
+    python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+    .venv/bin/python -m pytest tests/ -q
+
+## The dev loop
+
+    # 1. edit + test locally (seconds, no quota)
+    .venv/bin/python -m pytest tests/ -q
+
+    # 2. push
+    git add -A && git commit -m "..." && git push
+
+    # 3. run it on Kaggle (clones fresh from GitHub, runs the suite)
+    kaggle kernels push -p kernels/sync
+    kaggle kernels status shreysharma07/spec-sync
+    kaggle kernels output shreysharma07/spec-sync -p out/sync
+
+`kernels/sync` reports the HEAD sha it cloned -- check it matches your local
+`git rev-parse --short HEAD`, otherwise you are reading results from old code.
+That mismatch is the single easiest way to waste an hour here.
+
+The repo is public, so the session clones with no credentials. If it is ever
+made private you will need a PAT in Kaggle Secrets (Add-ons -> Secrets), since
+the API cannot set those for you.
+
+`pip install -e . --no-deps` is deliberate: the pins in pyproject.toml already
+match the image, and letting pip resolve them risks it replacing the CUDA torch
+build with a CPU wheel from PyPI.
+
 # Kaggle remote compute
 
 Kaggle has no SSH and no attachable VM. The loop is: write code locally ->
