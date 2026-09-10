@@ -11,7 +11,8 @@ import pytest
 import torch
 
 from analysis.report import load_runs, summarize, sweep_table
-from eval.metrics import BlockStats, best_block_size, expected_speedup, summarize_blocks
+from eval.metrics import (BlockStats, best_block_size, break_even_acceptance,
+                          expected_speedup, summarize_blocks)
 from harness.device import plan_device
 from harness.spec_decode import residual_distribution, speculative_step
 
@@ -126,6 +127,18 @@ def test_speedup_rejects_bad_input():
     for bad in ((1.5, 4, 0.1), (-0.1, 4, 0.1), (0.5, 0, 0.1), (0.5, 4, -1.0)):
         with pytest.raises(ValueError):
             expected_speedup(*bad)
+
+
+def test_break_even_is_the_actual_crossing_point():
+    k, c = 4, 0.1
+    alpha = break_even_acceptance(k, c)
+    assert alpha is not None
+    # Just below it we must lose, just above it we must win.
+    assert expected_speedup(alpha - 1e-3, k, c) < 1.0 < expected_speedup(alpha + 1e-3, k, c)
+
+
+def test_break_even_impossible_when_draft_costs_as_much_as_target():
+    assert break_even_acceptance(4, 1.0) is None
 
 
 def test_cheaper_draft_prefers_bigger_blocks():

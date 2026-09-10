@@ -62,6 +62,25 @@ def best_block_size(alpha: float, c: float, k_max: int = 16) -> int:
     return max(range(1, k_max + 1), key=lambda k: expected_speedup(alpha, k, c))
 
 
+def break_even_acceptance(k: int, c: float, tol: float = 1e-6) -> float | None:
+    """Minimum acceptance rate at which speculative decoding beats plain decoding.
+
+    Below this alpha the drafting overhead costs more than the tokens it saves,
+    so the whole scheme is a slowdown. Returns None when no alpha works, which
+    happens once the draft is too expensive relative to the target (c >= 1).
+    """
+    if expected_speedup(1.0, k, c) <= 1.0:
+        return None
+    lo, hi = 0.0, 1.0
+    while hi - lo > tol:                      # speedup is monotonic in alpha
+        mid = (lo + hi) / 2
+        if expected_speedup(mid, k, c) < 1.0:
+            lo = mid
+        else:
+            hi = mid
+    return round(hi, 6)
+
+
 def tokens_per_second(n_tokens: int, seconds: float) -> float:
     return n_tokens / seconds if seconds > 0 else 0.0
 
