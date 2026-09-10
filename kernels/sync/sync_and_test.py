@@ -46,13 +46,14 @@ report["pytest_rc"] = test.returncode
 report["pytest_tail"] = test.stdout.strip().splitlines()[-1] if test.stdout.strip() else ""
 report["tests_passed"] = test.returncode == 0
 
-# Prove the cloned code is importable and actually runs in this session.
+# Prove the cloned packages are importable in this session, not just present.
 try:
     sys.path.insert(0, DEST)
-    from eval.run_eval import run_synthetic
-    report["smoke_eval"] = run_synthetic(n_blocks=50, k=4, vocab=256)
+    import importlib
+    report["imports"] = {n: bool(importlib.import_module(n))
+                         for n in ("harness", "training", "eval", "analysis")}
 except Exception as e:
-    report["smoke_eval"] = {"ERROR": f"{type(e).__name__}: {e}"}
+    report["imports"] = {"ERROR": f"{type(e).__name__}: {e}"}
 
 print(json.dumps(report, indent=2))
 if not report["tests_passed"]:

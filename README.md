@@ -1,14 +1,16 @@
 # speculative_decoding
 
-    harness/    device planning + the accept/reject rule
-    training/   draft-model config and training loop
-    eval/       metrics (acceptance rate, speedup) and benchmark entry point
-    analysis/   JSONL aggregation and sweep tables
-    tests/      CPU-only, model-free, ~2s
+    harness/    empty package -- decoding runtime will live here
+    training/   empty package -- draft-model training
+    eval/       empty package -- benchmarks and metrics
+    analysis/   empty package -- result aggregation
+    tests/      one smoke test: pytest runs, packages import
 
-Local setup:
+Scaffolding only. The packages are empty on purpose; the test suite proves the
+layout and the environment work before any research code exists.
 
-    python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+    python3 -m venv .venv
+    .venv/bin/pip install -e ".[dev]" --no-deps
     .venv/bin/python -m pytest tests/ -q
 
 ## The dev loop
@@ -20,23 +22,46 @@ Local setup:
     git add -A && git commit -m "..." && git push
 
     # 3. run it on Kaggle (clones fresh from GitHub, runs the suite)
-    kaggle kernels push -p kernels/sync
+    kaggle kernels push   -p kernels/sync
     kaggle kernels status shreysharma07/spec-sync
     kaggle kernels output shreysharma07/spec-sync -p out/sync
 
-`kernels/sync` reports the HEAD sha it cloned -- check it matches your local
-`git rev-parse --short HEAD`, otherwise you are reading results from old code.
-That mismatch is the single easiest way to waste an hour here.
+`kernels/sync` reports the HEAD sha it cloned. Check it against your local
+`git rev-parse --short HEAD` -- if they differ you are reading results from old
+code, which is the easiest hour to lose here.
 
-The repo is public, so the session clones with no credentials. If it is ever
-made private you will need a PAT in Kaggle Secrets (Add-ons -> Secrets), since
-the API cannot set those for you.
+The repo is public, so the session clones with no credentials. If it is made
+private, the session needs a PAT in Kaggle Secrets (Add-ons -> Secrets); the
+API cannot set those for you.
 
-`pip install -e . --no-deps` is deliberate: the pins in pyproject.toml already
-match the image, and letting pip resolve them risks it replacing the CUDA torch
-build with a CPU wheel from PyPI.
+## Where checkpoints and W&B artifacts live
 
-# Kaggle remote compute
+Measured in-session:
+
+    /kaggle/working    21.0 GB total   <- the ONLY path persisted as output
+    /tmp             8656.9 GB total, 1102.5 GB free   <- scratch, discarded
+
+That gap decides it:
+
+| what                        | where                        | why |
+|-----------------------------|------------------------------|-----|
+| rotating training ckpts     | `/tmp/ckpt`                  | 1.1TB free; they are disposable |
+| the one checkpoint you keep | `/kaggle/working/`           | only path that survives the session |
+| durable across sessions     | Kaggle Dataset (`datasets version`) | `/kaggle/working` dies with the kernel |
+| W&B run data                | W&B cloud, dir under `/tmp`  | keeps the 21GB output budget free |
+
+The rule: **write big and often to `/tmp`, copy only the keeper to
+`/kaggle/working`.** Checkpointing straight to `/kaggle/working` fills 21GB in
+a few saves of a 7B model and the run dies late, after you have paid for it.
+
+For anything that must outlive the session, promote it to a Kaggle Dataset --
+that is the only real persistence Kaggle offers. `/kaggle/working` is output,
+not storage.
+
+W&B needs `WANDB_API_KEY` from Kaggle Secrets and `enable_internet: true`.
+Set `WANDB_DIR=/tmp/wandb` so the local run cache does not eat the output quota.
+
+## Kaggle remote compute
 
 Kaggle has no SSH and no attachable VM. The loop is: write code locally ->
 push it as a kernel -> it runs on Kaggle's GPU -> pull the output back.

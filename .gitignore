@@ -1,12 +1,51 @@
-.venv/
+# --- checkpoints / weights -------------------------------------------------
+# A single checkpoint is easily 3GB. Committing one is painful to undo, so
+# these patterns come first and stay broad.
+checkpoints/
+ckpt/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+
+# --- experiment tracking ---------------------------------------------------
+wandb/
+.wandb/
+runs/
+lightning_logs/
+
+# --- data ------------------------------------------------------------------
+# Downloaded corpora and HF cache. Note: this is *data*, not the `datasets`
+# python package, and not any local package directory.
 data/
+datasets/
+.cache/
+hf_cache/
+*.arrow
+*.jsonl.gz
+*.zip
+*.tar.gz
+
+# --- kaggle ----------------------------------------------------------------
+# pulled kernel outputs
 out/
+# API credentials must never be committed
+kaggle.json
+
+# --- python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
-.DS_Store
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
 
-# Kaggle credentials must never reach the repo.
-kaggle.json
+# --- editor / os -----------------------------------------------------------
 .vscode/
+.idea/
+.DS_Store

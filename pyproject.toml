@@ -5,36 +5,26 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "speculative-decoding"
 version = "0.1.0"
-description = "Speculative decoding harness, training, eval and analysis"
+description = "Speculative decoding: harness, training, eval, analysis"
 requires-python = ">=3.12"
 
-# Pinned to the exact versions in Kaggle's image (probed 2026-09-10), so
-# `pip install -e .` inside a session resolves to already-satisfied and
-# installs nothing -- in particular it will not try to swap out the CUDA
-# torch build for a wheel from PyPI. Re-probe after Kaggle bumps the image.
+# Pinned to the exact versions in Kaggle's image, probed 2026-09-10.
+# Matching the image is the point: `pip install -e . --no-deps` in a session
+# then installs nothing, so pip never gets the chance to "satisfy" torch by
+# pulling a CPU wheel from PyPI over the CUDA build. Re-probe on image bumps
+# (kernels/gpu-probe) and move these pins deliberately, not by accident.
 dependencies = [
     "torch==2.10.0",
-    "numpy==2.0.2",
     "transformers==5.0.0",
-    "datasets==5.0.0",
     "accelerate==1.13.0",
-    "tokenizers==0.22.2",
-    "safetensors==0.7.0",
-    "huggingface-hub==1.11.0",
-    "pandas==2.3.3",
+    "datasets==5.0.0",
+    "wandb==0.26.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest==8.4.2",
 ]
-analysis = [
-    "matplotlib==3.10.0",
-    "scipy==1.16.3",
-]
-
-[project.scripts]
-spec-eval = "eval.run_eval:main"
 
 [tool.setuptools]
 packages = ["harness", "training", "eval", "analysis"]
