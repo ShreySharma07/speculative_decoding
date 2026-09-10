@@ -1,0 +1,12 @@
+.venv/
+data/
+out/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.DS_Store
+
+# Kaggle credentials must never reach the repo.
+kaggle.json
+.vscode/
